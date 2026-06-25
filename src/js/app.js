@@ -99,16 +99,9 @@ findButton.addEventListener("click", async () => {
     .map(item => item.trim())
     .filter(Boolean);
 
-  resultsContainer.innerHTML = `
-    <div class="text-center py-10">
-      <p class="text-xl font-semibold">
-        Searching thousands of recipes...
-      </p>
-    </div>
-  `;
-
   try {
     const recipes = await searchMultipleIngredients(ingredients);
+
     const matches = findMatchingRecipes(ingredients, recipes);
 
     displayResults(matches, ingredients);
@@ -117,7 +110,7 @@ findButton.addEventListener("click", async () => {
 
     resultsContainer.innerHTML = `
       <div class="bg-red-50 text-red-700 p-4 rounded-xl text-center">
-        Something went wrong while loading recipes.
+        Failed to load recipes. Check console for details.
       </div>
     `;
   }
