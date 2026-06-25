@@ -13,18 +13,27 @@
     <main>
         <section id="ingredient-input">
             <h2>Your Ingredients</h2>
-            <textarea placeholder="Enter ingredients here..."></textarea>
-            <button>Find Matches</button>
+            <textarea
+                id="ingredients"
+                placeholder="Example: bread, cheese, butter"
+            ></textarea>
+            <br><br>
+            <button id="find-btn">
+                Find Recipes
+            </button>
         </section>
 
         <section id="results">
             <h2>Recipe Matches</h2>
-            <p>Matching recipes will appear here.</p>
+            <div id="matches-container">
+                <p>Matching recipes will appear here.</p>
+            </div>
         </section>
     </main>
 
     <footer>
         <p>&copy; 2026 Fridge Ingredient Matcher</p>
     </footer>
+    <script type="module" src="./src/js/app.js"></script>
 </body>
 </html>
