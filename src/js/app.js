@@ -5,6 +5,16 @@ const ingredientInput = document.getElementById("ingredients");
 const findButton = document.getElementById("find-btn");
 const resultsContainer = document.getElementById("results");
 
+/**
+ * Smarter ingredient match (handles "egg" vs "1 large egg")
+ */
+function hasIngredient(recipeIng, userIngredients) {
+  const recipe = recipeIng.toLowerCase();
+  return userIngredients.some(userIng =>
+    recipe.includes(userIng.toLowerCase())
+  );
+}
+
 function displayResults(recipes, userIngredients) {
   resultsContainer.innerHTML = "";
 
@@ -18,8 +28,6 @@ function displayResults(recipes, userIngredients) {
     return;
   }
 
-  const normalizedUser = userIngredients.map(i => i.toLowerCase().trim());
-
   recipes.forEach(recipe => {
     const card = document.createElement("div");
     card.className =
@@ -28,10 +36,10 @@ function displayResults(recipes, userIngredients) {
     const ownedTags = [];
     const missingTags = [];
 
-    (recipe.ingredients || []).forEach(ing => {
-      const normalizedIng = ing.toLowerCase().trim();
+    const ingredients = recipe.ingredients || [];
 
-      if (normalizedUser.includes(normalizedIng)) {
+    ingredients.forEach(ing => {
+      if (hasIngredient(ing, userIngredients)) {
         ownedTags.push(
           `<span class="bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-medium border border-emerald-100">✓ ${ing}</span>`
         );
@@ -53,6 +61,13 @@ function displayResults(recipes, userIngredients) {
       <div class="flex justify-between items-start gap-4">
         <div>
           <h3 class="text-lg font-bold text-slate-900">${recipe.name}</h3>
+
+          <img 
+            src="${recipe.image || 'https://via.placeholder.com/400x300?text=No+Image'}" 
+            alt="${recipe.name}" 
+            class="w-full h-48 object-cover rounded-xl border border-slate-100 mt-3"
+          />
+
           <div class="mt-1 flex items-center gap-2">${badgeHtml}</div>
         </div>
 
@@ -99,9 +114,20 @@ findButton.addEventListener("click", async () => {
     .map(item => item.trim())
     .filter(Boolean);
 
-  try {
-    const recipes = await searchMultipleIngredients(ingredients);
+  if (ingredients.length === 0) {
+    resultsContainer.innerHTML = `
+      <div class="bg-red-50 text-red-700 p-4 rounded-xl text-center">
+        Please enter at least one ingredient.
+      </div>
+    `;
+    return;
+  }
 
+  try {
+    findButton.disabled = true;
+    findButton.textContent = "Searching...";
+
+    const recipes = await searchMultipleIngredients(ingredients);
     const matches = findMatchingRecipes(ingredients, recipes);
 
     displayResults(matches, ingredients);
@@ -113,5 +139,8 @@ findButton.addEventListener("click", async () => {
         Failed to load recipes. Check console for details.
       </div>
     `;
+  } finally {
+    findButton.disabled = false;
+    findButton.textContent = "Find Recipes";
   }
 });
