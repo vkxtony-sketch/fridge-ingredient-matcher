@@ -1,6 +1,4 @@
-import recipes from "./recipes.js";
-
-export function findMatchingRecipes(userIngredients) {
+export function findMatchingRecipes(userIngredients, recipes) {
   const normalizedIngredients = userIngredients.map(item =>
     item.trim().toLowerCase()
   );
@@ -11,9 +9,14 @@ export function findMatchingRecipes(userIngredients) {
         normalizedIngredients.includes(ingredient.toLowerCase())
       );
 
+      const missingIngredients = recipe.ingredients.filter(
+        ingredient => !normalizedIngredients.includes(ingredient.toLowerCase())
+      );
+
       return {
         ...recipe,
         matchCount: matchingIngredients.length,
+        missingIngredients,
         matchPercentage:
           (matchingIngredients.length / recipe.ingredients.length) * 100
       };
@@ -23,6 +26,7 @@ export function findMatchingRecipes(userIngredients) {
       if (b.matchPercentage !== a.matchPercentage) {
         return b.matchPercentage - a.matchPercentage;
       }
+
       return b.matchCount - a.matchCount;
     });
 
