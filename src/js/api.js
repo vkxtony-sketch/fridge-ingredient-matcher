@@ -65,30 +65,35 @@ export function normalizeRecipe(recipe) {
  * Search using multiple ingredients
  */
 export async function searchMultipleIngredients(userIngredients) {
+    try {
+        // Search every ingredient simultaneously
+        const searchResults = await Promise.all(
+            userIngredients.map(ingredient =>
+                searchRecipesByIngredient(ingredient)
+            )
+        );
 
-    const recipeMap = new Map();
+        // Remove duplicate recipes
+        const recipeMap = new Map();
 
-    for (const ingredient of userIngredients) {
-
-        const recipes = await searchRecipesByIngredient(ingredient);
-
-        recipes.forEach(recipe => {
+        searchResults.flat().forEach(recipe => {
             recipeMap.set(recipe.idMeal, recipe);
         });
+
+        // Download recipe details simultaneously
+        const detailedRecipes = await Promise.all(
+            [...recipeMap.values()].map(recipe =>
+                getRecipeDetails(recipe.idMeal)
+            )
+        );
+
+        // Convert to our app's format
+        return detailedRecipes
+            .filter(recipe => recipe !== null)
+            .map(normalizeRecipe);
+
+    } catch (error) {
+        console.error("Recipe search failed:", error);
+        return [];
     }
-
-    const detailedRecipes = [];
-
-    for (const recipe of recipeMap.values()) {
-
-        const fullRecipe = await getRecipeDetails(recipe.idMeal);
-
-        if (fullRecipe) {
-            detailedRecipes.push(
-                normalizeRecipe(fullRecipe)
-            );
-        }
-    }
-
-    return detailedRecipes;
 }
