@@ -1,4 +1,5 @@
 import { findMatchingRecipes } from "./matcher.js";
+import { searchMultipleIngredients } from "./api.js";
 
 const ingredientInput = document.getElementById("ingredients");
 const findButton = document.getElementById("find-btn");
@@ -83,6 +84,8 @@ findButton.addEventListener("click", () => {
     .map(item => item.trim())
     .filter(Boolean);
 
-  const matches = findMatchingRecipes(ingredients);
+const recipes = await searchMultipleIngredients(userIngredients);
+
+const matches = findMatchingRecipes(userIngredients, recipes);
   displayResults(matches, ingredients);
 });
