@@ -1,99 +1,59 @@
-const API_BASE = "https://www.themealdb.com/api/json/v1/1";
+const BASE_URL = "https://www.themealdb.com/api/json/v1/1";
+const PROXY = "https://api.allorigins.win/raw?url=";
 
 /**
- * Search recipes by a single ingredient
+ * Safe fetch through CORS proxy
+ */
+async function fetchMealDB(url) {
+  const res = await fetch(PROXY + encodeURIComponent(url));
+  if (!res.ok) throw new Error("Network error");
+  return res.json();
+}
+
+/**
+ * Search recipes by ingredient (fast lightweight results)
  */
 export async function searchRecipesByIngredient(ingredient) {
-    try {
-        const response = await fetch(
-            `${API_BASE}/filter.php?i=${encodeURIComponent(ingredient)}`
-        );
+  const data = await fetchMealDB(
+    `${BASE_URL}/filter.php?i=${encodeURIComponent(ingredient)}`
+  );
 
-        const data = await response.json();
-
-        return data.meals || [];
-    } catch (error) {
-        console.error("Ingredient search failed:", error);
-        return [];
-    }
+  return data.meals || [];
 }
 
 /**
- * Get complete recipe details
+ * Get full recipe details (NO CORS ERROR NOW)
  */
 export async function getRecipeDetails(id) {
-    try {
-        const response = await fetch(
-            `${API_BASE}/lookup.php?i=${id}`
-        );
+  const data = await fetchMealDB(
+    `${BASE_URL}/lookup.php?i=${id}`
+  );
 
-        const data = await response.json();
+  return data.meals ? data.meals[0] : null;
+}
 
-        return data.meals ? data.meals[0] : null;
-    } catch (error) {
-        console.error("Recipe lookup failed:", error);
+/**
+ * Search multiple ingredients and return FULL recipes
+ */
+export async function searchMultipleIngredients(ingredients) {
+  if (!ingredients || ingredients.length === 0) return [];
+
+  // 1. Get basic meals from first ingredient
+  const basicMeals = await searchRecipesByIngredient(ingredients[0]);
+
+  if (!basicMeals.length) return [];
+
+  // 2. Fetch full details safely (now through proxy)
+  const fullRecipes = await Promise.all(
+    basicMeals.map(async (meal) => {
+      try {
+        return await getRecipeDetails(meal.idMeal);
+      } catch (err) {
+        console.warn("Recipe lookup failed:", err);
         return null;
-    }
-}
+      }
+    })
+  );
 
-/**
- * Convert MealDB recipe into our application's format
- */
-export function normalizeRecipe(recipe) {
-    const ingredients = [];
-
-    for (let i = 1; i <= 20; i++) {
-        const ingredient = recipe[`strIngredient${i}`];
-
-        if (ingredient && ingredient.trim() !== "") {
-            ingredients.push(ingredient.trim().toLowerCase());
-        }
-    }
-
-    return {
-        id: recipe.idMeal,
-        name: recipe.strMeal,
-        category: recipe.strCategory,
-        cuisine: recipe.strArea,
-        image: recipe.strMealThumb,
-        instructions: recipe.strInstructions,
-        ingredients
-    };
-}
-
-/**
- * Search using multiple ingredients
- */
-export async function searchMultipleIngredients(userIngredients) {
-    try {
-        // Search every ingredient simultaneously
-        const searchResults = await Promise.all(
-            userIngredients.map(ingredient =>
-                searchRecipesByIngredient(ingredient)
-            )
-        );
-
-        // Remove duplicate recipes
-        const recipeMap = new Map();
-
-        searchResults.flat().forEach(recipe => {
-            recipeMap.set(recipe.idMeal, recipe);
-        });
-
-        // Download recipe details simultaneously
-        const detailedRecipes = await Promise.all(
-            [...recipeMap.values()].map(recipe =>
-                getRecipeDetails(recipe.idMeal)
-            )
-        );
-
-        // Convert to our app's format
-        return detailedRecipes
-            .filter(recipe => recipe !== null)
-            .map(normalizeRecipe);
-
-    } catch (error) {
-        console.error("Recipe search failed:", error);
-        return [];
-    }
+  return fullRecipes.filter(Boolean);
 }
