@@ -1,34 +1,47 @@
+function extractIngredients(recipe) {
+  const ingredients = [];
+
+  for (let i = 1; i <= 20; i++) {
+    const ing = recipe[`strIngredient${i}`];
+    const measure = recipe[`strMeasure${i}`];
+
+    if (ing && ing.trim()) {
+      ingredients.push(`${measure ? measure + " " : ""}${ing}`.trim());
+    }
+  }
+
+  return ingredients;
+}
+
+function calculateMatch(userIngredients, recipeIngredients) {
+  const user = userIngredients.map(i => i.toLowerCase());
+
+  let matchCount = 0;
+
+  recipeIngredients.forEach(ing => {
+    const clean = ing.toLowerCase();
+    if (user.some(u => clean.includes(u))) {
+      matchCount++;
+    }
+  });
+
+  return Math.round((matchCount / recipeIngredients.length) * 100);
+}
+
 export function findMatchingRecipes(userIngredients, recipes) {
-  const normalizedIngredients = userIngredients.map(item =>
-    item.trim().toLowerCase()
-  );
+  return recipes.map(recipe => {
+    const ingredients = extractIngredients(recipe);
 
-  const matches = recipes
-    .map(recipe => {
-      const matchingIngredients = recipe.ingredients.filter(ingredient =>
-        normalizedIngredients.includes(ingredient.toLowerCase())
-      );
+    return {
+      id: recipe.idMeal,
+      name: recipe.strMeal,
 
-      const missingIngredients = recipe.ingredients.filter(
-        ingredient => !normalizedIngredients.includes(ingredient.toLowerCase())
-      );
+      // 🔥 THIS FIXES YOUR IMAGE PROBLEM
+      image: recipe.strMealThumb,
 
-      return {
-        ...recipe,
-        matchCount: matchingIngredients.length,
-        missingIngredients,
-        matchPercentage:
-          (matchingIngredients.length / recipe.ingredients.length) * 100
-      };
-    })
-    .filter(recipe => recipe.matchCount > 0)
-    .sort((a, b) => {
-      if (b.matchPercentage !== a.matchPercentage) {
-        return b.matchPercentage - a.matchPercentage;
-      }
-
-      return b.matchCount - a.matchCount;
-    });
-
-  return matches;
+      ingredients,
+      instructions: recipe.strInstructions || "No instructions available.",
+      matchPercentage: calculateMatch(userIngredients, ingredients)
+    };
+  });
 }
