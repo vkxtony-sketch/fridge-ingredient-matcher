@@ -6,7 +6,9 @@ function extractIngredients(recipe) {
     const measure = recipe[`strMeasure${i}`];
 
     if (ing && ing.trim()) {
-      ingredients.push(`${measure ? measure + " " : ""}${ing}`.trim());
+      ingredients.push(
+        `${measure ? measure + " " : ""}${ing}`.trim()
+      );
     }
   }
 
@@ -14,34 +16,43 @@ function extractIngredients(recipe) {
 }
 
 function calculateMatch(userIngredients, recipeIngredients) {
-  const user = userIngredients.map(i => i.toLowerCase());
+  const user = userIngredients.map(i => i.toLowerCase().trim());
 
   let matchCount = 0;
 
   recipeIngredients.forEach(ing => {
     const clean = ing.toLowerCase();
+
     if (user.some(u => clean.includes(u))) {
       matchCount++;
     }
   });
 
-  return Math.round((matchCount / recipeIngredients.length) * 100);
+  return recipeIngredients.length === 0
+    ? 0
+    : Math.round((matchCount / recipeIngredients.length) * 100);
 }
 
 export function findMatchingRecipes(userIngredients, recipes) {
-  return recipes.map(recipe => {
+  const results = recipes.map(recipe => {
     const ingredients = extractIngredients(recipe);
+
+    const matchPercentage = calculateMatch(userIngredients, ingredients);
 
     return {
       id: recipe.idMeal,
       name: recipe.strMeal,
 
-      // 🔥 THIS FIXES YOUR IMAGE PROBLEM
+      // 🔥 IMAGE FIX (THIS is what you were missing before)
       image: recipe.strMealThumb,
 
       ingredients,
       instructions: recipe.strInstructions || "No instructions available.",
-      matchPercentage: calculateMatch(userIngredients, ingredients)
+
+      matchPercentage
     };
   });
+
+  // 🔥 SORT HIGHEST MATCH FIRST 
+  return results.sort((a, b) => b.matchPercentage - a.matchPercentage);
 }
