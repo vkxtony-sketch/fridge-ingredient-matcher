@@ -1,9 +1,6 @@
 const BASE_URL = "https://www.themealdb.com/api/json/v1/1";
 const PROXY = "https://api.allorigins.win/raw?url=";
 
-/**
- * Safe fetch through CORS proxy
- */
 async function fetchMealDB(url) {
   const res = await fetch(PROXY + encodeURIComponent(url));
   if (!res.ok) throw new Error("Network error");
@@ -11,7 +8,7 @@ async function fetchMealDB(url) {
 }
 
 /**
- * Search recipes by ingredient (fast lightweight results)
+ * Get meals by ingredient (basic search)
  */
 export async function searchRecipesByIngredient(ingredient) {
   const data = await fetchMealDB(
@@ -22,34 +19,32 @@ export async function searchRecipesByIngredient(ingredient) {
 }
 
 /**
- * Get full recipe details (NO CORS ERROR NOW)
+ * Get full meal details (safe + consistent)
  */
 export async function getRecipeDetails(id) {
   const data = await fetchMealDB(
     `${BASE_URL}/lookup.php?i=${id}`
   );
 
-  return data.meals ? data.meals[0] : null;
+  return data.meals?.[0] || null;
 }
 
 /**
- * Search multiple ingredients and return FULL recipes
+ * Full pipeline: ingredient → meals → full recipes
  */
 export async function searchMultipleIngredients(ingredients) {
-  if (!ingredients || ingredients.length === 0) return [];
+  if (!ingredients?.length) return [];
 
-  // 1. Get basic meals from first ingredient
-  const basicMeals = await searchRecipesByIngredient(ingredients[0]);
+  const baseMeals = await searchRecipesByIngredient(ingredients[0]);
 
-  if (!basicMeals.length) return [];
+  if (!baseMeals.length) return [];
 
-  // 2. Fetch full details safely (now through proxy)
   const fullRecipes = await Promise.all(
-    basicMeals.map(async (meal) => {
+    baseMeals.map(async (meal) => {
       try {
-        return await getRecipeDetails(meal.idMeal);
-      } catch (err) {
-        console.warn("Recipe lookup failed:", err);
+        const full = await getRecipeDetails(meal.idMeal);
+        return full;
+      } catch (e) {
         return null;
       }
     })
