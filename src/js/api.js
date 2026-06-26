@@ -3,14 +3,13 @@ const PROXY = "https://api.allorigins.win/raw?url=";
 
 async function fetchMealDB(url) {
   const res = await fetch(PROXY + encodeURIComponent(url));
-  if (!res.ok) throw new Error("Network error");
   return res.json();
 }
 
 /**
- * Get meals by ingredient (basic search)
+ * Get meals for ONE ingredient
  */
-export async function searchRecipesByIngredient(ingredient) {
+async function getMealsByIngredient(ingredient) {
   const data = await fetchMealDB(
     `${BASE_URL}/filter.php?i=${encodeURIComponent(ingredient)}`
   );
@@ -19,9 +18,9 @@ export async function searchRecipesByIngredient(ingredient) {
 }
 
 /**
- * Get full meal details (safe + consistent)
+ * Get full recipe details
  */
-export async function getRecipeDetails(id) {
+async function getRecipeDetails(id) {
   const data = await fetchMealDB(
     `${BASE_URL}/lookup.php?i=${id}`
   );
@@ -30,24 +29,33 @@ export async function getRecipeDetails(id) {
 }
 
 /**
- * Full pipeline: ingredient → meals → full recipes
+ * MAIN SEARCH (FIXED)
+ * - uses ALL ingredients
+ * - merges results
+ * - removes duplicates
+ * - fetches full recipes
  */
 export async function searchMultipleIngredients(ingredients) {
   if (!ingredients?.length) return [];
 
-  const baseMeals = await searchRecipesByIngredient(ingredients[0]);
+  // 1. search ALL ingredients (not just first one)
+  const allResults = await Promise.all(
+    ingredients.map(i => getMealsByIngredient(i))
+  );
 
-  if (!baseMeals.length) return [];
+  // 2. flatten + remove duplicates
+  const unique = {};
+  allResults.flat().forEach(meal => {
+    unique[meal.idMeal] = meal;
+  });
 
+  const uniqueMeals = Object.values(unique);
+
+  if (!uniqueMeals.length) return [];
+
+  // 3. fetch full recipe details
   const fullRecipes = await Promise.all(
-    baseMeals.map(async (meal) => {
-      try {
-        const full = await getRecipeDetails(meal.idMeal);
-        return full;
-      } catch (e) {
-        return null;
-      }
-    })
+    uniqueMeals.map(m => getRecipeDetails(m.idMeal))
   );
 
   return fullRecipes.filter(Boolean);
