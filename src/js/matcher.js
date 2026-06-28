@@ -18,14 +18,14 @@ function calculateMatch(userIngredients, recipeIngredients) {
 
   let score = 0;
 
-  recipeIngredients.forEach(ing => {
+  for (const ing of recipeIngredients) {
     const clean = ing.toLowerCase();
     const words = clean.split(/[\s,()-]+/);
 
     if (user.some(u => words.includes(u))) {
       score++;
     }
-  });
+  }
 
   return recipeIngredients.length
     ? Math.round((score / recipeIngredients.length) * 100)
@@ -50,9 +50,16 @@ export function findMatchingRecipes(userIngredients, recipes) {
     };
   });
 
-  return results.sort((a, b) => {
-    if (a.matchPercentage === 100 && b.matchPercentage !== 100) return -1;
-    if (b.matchPercentage === 100 && a.matchPercentage !== 100) return 1;
-    return b.matchPercentage - a.matchPercentage;
-  });
+  // ⚡ FAST PATH: always show 100% matches first
+  const perfect = [];
+  const others = [];
+
+  for (const r of results) {
+    if (r.matchPercentage === 100) perfect.push(r);
+    else others.push(r);
+  }
+
+  others.sort((a, b) => b.matchPercentage - a.matchPercentage);
+
+  return [...perfect, ...others];
 }
