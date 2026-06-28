@@ -1,54 +1,32 @@
 const QUICK_IDEAS = {
   egg: [
-    {
-      name: "Scrambled Eggs",
-      ingredients: ["egg", "butter", "salt"],
-      instructions: "Whisk eggs and cook in butter while stirring."
-    },
-    {
-      name: "Fried Egg",
-      ingredients: ["egg", "oil"],
-      instructions: "Fry egg in pan until cooked."
-    },
-    {
-      name: "Boiled Egg",
-      ingredients: ["egg"],
-      instructions: "Boil egg in water for 8–10 minutes."
-    }
+    { name: "Scrambled Eggs", ingredients: ["egg", "butter", "salt"], instructions: "Whisk eggs and cook in butter." },
+    { name: "Fried Egg", ingredients: ["egg", "oil"], instructions: "Fry egg in pan." },
+    { name: "Boiled Egg", ingredients: ["egg"], instructions: "Boil egg 8–10 min." }
   ],
 
   bread: [
-    {
-      name: "Toast",
-      ingredients: ["bread"],
-      instructions: "Toast bread until golden brown."
-    },
-    {
-      name: "Butter Toast",
-      ingredients: ["bread", "butter"],
-      instructions: "Toast bread and spread butter."
-    }
+    { name: "Toast", ingredients: ["bread"], instructions: "Toast bread." },
+    { name: "Butter Toast", ingredients: ["bread", "butter"], instructions: "Toast + butter." }
   ],
 
   cheese: [
-    {
-      name: "Cheese Toast",
-      ingredients: ["cheese", "bread"],
-      instructions: "Toast bread and melt cheese on top."
-    },
-    {
-      name: "Grilled Cheese",
-      ingredients: ["bread", "cheese", "butter"],
-      instructions: "Butter bread, add cheese, grill until golden."
-    }
+    { name: "Cheese Toast", ingredients: ["cheese", "bread"], instructions: "Melt cheese on toast." },
+    { name: "Grilled Cheese", ingredients: ["bread", "cheese", "butter"], instructions: "Grill until golden." }
   ],
 
   rice: [
-    {
-      name: "Plain Rice",
-      ingredients: ["rice", "water"],
-      instructions: "Boil rice until soft."
-    }
+    { name: "Plain Rice", ingredients: ["rice", "water"], instructions: "Boil rice." }
+  ],
+
+  chicken: [
+    { name: "Grilled Chicken", ingredients: ["chicken", "salt", "oil"], instructions: "Grill chicken." },
+    { name: "Chicken Stir Fry", ingredients: ["chicken", "oil", "veg"], instructions: "Stir fry chicken." }
+  ],
+
+  cheese: [
+    { name: "Cheese Toast", ingredients: ["cheese", "bread"], instructions: "Toast and melt cheese." },
+    { name: "Grilled Cheese", ingredients: ["bread", "cheese", "butter"], instructions: "Grill sandwich." }
   ]
 };
 
@@ -58,9 +36,7 @@ function scoreSimpleRecipe(userIngredients, recipe) {
   let score = 0;
 
   for (const ing of recipe.ingredients) {
-    if (user.some(u => ing.includes(u) || u.includes(ing))) {
-      score++;
-    }
+    if (user.some(u => ing.includes(u) || u.includes(ing))) score++;
   }
 
   return recipe.ingredients.length
