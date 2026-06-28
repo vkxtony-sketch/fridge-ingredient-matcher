@@ -16,18 +16,19 @@ function extractIngredients(recipe) {
 function calculateMatch(userIngredients, recipeIngredients) {
   const user = userIngredients.map(i => i.toLowerCase().trim());
 
-  let matches = 0;
+  let score = 0;
 
   recipeIngredients.forEach(ing => {
     const clean = ing.toLowerCase();
+    const words = clean.split(/[\s,()-]+/);
 
-    if (user.some(u => clean.includes(u))) {
-      matches++;
+    if (user.some(u => words.includes(u))) {
+      score++;
     }
   });
 
   return recipeIngredients.length
-    ? Math.round((matches / recipeIngredients.length) * 100)
+    ? Math.round((score / recipeIngredients.length) * 100)
     : 0;
 }
 
@@ -39,16 +40,19 @@ export function findMatchingRecipes(userIngredients, recipes) {
       id: recipe.idMeal,
       name: recipe.strMeal,
 
-      // FIXED IMAGE
-      image: recipe.strMealThumb,
+      image: recipe.strMealThumb?.startsWith("http")
+        ? recipe.strMealThumb
+        : "https://via.placeholder.com/400x300?text=No+Image",
 
       ingredients,
       instructions: recipe.strInstructions || "No instructions available.",
-
       matchPercentage: calculateMatch(userIngredients, ingredients)
     };
   });
 
-  // 🔥 SORT FIX (MOST IMPORTANT)
-  return results.sort((a, b) => b.matchPercentage - a.matchPercentage);
+  return results.sort((a, b) => {
+    if (a.matchPercentage === 100 && b.matchPercentage !== 100) return -1;
+    if (b.matchPercentage === 100 && a.matchPercentage !== 100) return 1;
+    return b.matchPercentage - a.matchPercentage;
+  });
 }
