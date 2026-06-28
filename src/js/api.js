@@ -1,68 +1,45 @@
 const BASE_URL = "https://www.themealdb.com/api/json/v1/1";
 
-const PROXIES = [
-  "https://api.allorigins.win/raw?url=",
-  "https://corsproxy.io/?"
-];
+const controllerMap = new Map();
 
-const cache = new Map();
+async function fetchJSON(url, timeout = 6000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
 
-async function fetchMealDB(url) {
-  const cacheKey = url;
-
-  if (cache.has(cacheKey)) return cache.get(cacheKey);
-
-  for (const proxy of PROXIES) {
-    try {
-      const res = await fetch(proxy + encodeURIComponent(url));
-      const data = await res.json();
-
-      if (data) {
-        cache.set(cacheKey, data);
-        return data;
-      }
-    } catch (e) {
-      continue;
-    }
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    return await res.json();
+  } finally {
+    clearTimeout(id);
   }
-
-  throw new Error("All proxies failed");
 }
 
+// ⚡ FAST: single request per ingredient
 async function getMealsByIngredient(ingredient) {
-  const data = await fetchMealDB(
+  const data = await fetchJSON(
     `${BASE_URL}/filter.php?i=${encodeURIComponent(ingredient)}`
   );
 
   return data.meals || [];
 }
 
-async function getRecipeDetails(id) {
-  const data = await fetchMealDB(
-    `${BASE_URL}/lookup.php?i=${id}`
-  );
-
-  return data.meals?.[0] || null;
-}
-
 export async function searchMultipleIngredients(ingredients) {
   if (!ingredients?.length) return [];
 
-  const allResults = await Promise.all(
+  // parallel fetch (fast)
+  const results = await Promise.all(
     ingredients.map(i => getMealsByIngredient(i))
   );
 
-  const unique = {};
-  allResults.flat().forEach(meal => {
-    unique[meal.idMeal] = meal;
-  });
+  // dedupe
+  const map = new Map();
 
-  const uniqueMeals = Object.values(unique);
-  if (!uniqueMeals.length) return [];
+  for (const list of results) {
+    for (const meal of list) {
+      map.set(meal.idMeal, meal);
+    }
+  }
 
-  const fullRecipes = await Promise.all(
-    uniqueMeals.map(m => getRecipeDetails(m.idMeal))
-  );
-
-  return fullRecipes.filter(Boolean);
+  // limit early for speed
+  return Array.from(map.values()).slice(0, 10);
 }
