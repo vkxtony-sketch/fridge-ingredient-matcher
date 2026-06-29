@@ -1,35 +1,50 @@
-function calculateMatch(userIngredients, recipeName) {
-  const user = userIngredients.map(i => i.toLowerCase().trim());
-  const name = recipeName.toLowerCase();
+function normalize(text) {
+  return text.toLowerCase().trim();
+}
 
-  let score = 0;
+function calculateIngredientOverlap(userIngredients, recipeName, recipeIngredients = []) {
+  const user = userIngredients.map(normalize);
+  const recipe = recipeIngredients.map(normalize);
+
+  let matches = 0;
 
   for (const u of user) {
-    if (name.includes(u)) score++;
+    if (recipeName.toLowerCase().includes(u)) matches++;
+    if (recipe.some(r => r.includes(u))) matches++;
   }
 
-  return user.length ? Math.round((score / user.length) * 100) : 0;
+  const max = Math.max(user.length, 1);
+  return Math.min(100, Math.round((matches / max) * 100));
+}
+
+function calculateCookingEfficiency(recipe = {}) {
+  // placeholder scoring (future: time, steps, complexity)
+  return recipe.strInstructions ? 50 : 20;
 }
 
 export function findMatchingRecipes(userIngredients, recipes) {
-  const enriched = recipes.map(r => ({
-    id: r.idMeal,
-    name: r.strMeal,
-    image: r.strMealThumb,
-    ingredients: [],
-    instructions: "Open recipe for details",
-    matchPercentage: calculateMatch(userIngredients, r.strMeal)
-  }));
+  const enriched = recipes.map(r => {
+    const ingredientScore = calculateIngredientOverlap(
+      userIngredients,
+      r.strMeal,
+      r.ingredients || []
+    );
 
-  const perfect = [];
-  const others = [];
+    const efficiency = calculateCookingEfficiency(r);
 
-  for (const r of enriched) {
-    if (r.matchPercentage >= 100) perfect.push(r);
-    else others.push(r);
-  }
+    const score =
+      ingredientScore * 0.7 +
+      efficiency * 0.3;
 
-  others.sort((a, b) => b.matchPercentage - a.matchPercentage);
+    return {
+      id: r.idMeal,
+      name: r.strMeal,
+      image: r.strMealThumb,
+      matchPercentage: Math.round(score),
+      ingredientScore,
+      efficiency
+    };
+  });
 
-  return [...perfect, ...others];
+  return enriched.sort((a, b) => b.matchPercentage - a.matchPercentage);
 }
